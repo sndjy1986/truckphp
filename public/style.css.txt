@@ -1,0 +1,629 @@
+/* style.css */
+
+/* --- CSS Variables for Theming --- */
+:root {
+    /* Light Mode Defaults */
+    --body-bg: #f0f2f5;
+    --header-bg: #ffffff;
+    --header-text: #333;
+    --system-level-text: #555;
+    --container-bg: #fff;
+    --box-shadow-light: rgba(0, 0, 0, 0.1);
+    --box-shadow-dark: rgba(0, 0, 0, 0.2);
+    --admin-panel-bg-overlay: rgba(0, 0, 0, 0.8);
+    --admin-panel-content-bg: #fff;
+    --admin-panel-text: #333;
+    --admin-border: #eee;
+    --input-border: #ccc;
+    --input-text: #333;
+    --label-text: #555;
+    --button-primary: #007bff;
+    --button-primary-hover: #0056b3;
+    --button-success: #28a745;
+    --button-success-hover: #218838;
+    --button-danger: #dc3545;
+    --button-danger-hover: #c82333;
+    --button-warning: #f0ad4e;
+    --button-warning-hover: #ec971f;
+    --button-info: #17a2b8;
+    --button-info-hover: #138496;
+    --button-secondary: #6c757d;
+    --button-secondary-hover: #5a6268;
+    --modal-bg: #fff;
+    --modal-text: #333;
+    --modal-border: #ccc;
+
+    /* New Status Colors */
+    --status-onsceene-bg: #6f42c1; /* Purple */
+    --status-enroutetodestination-bg: #20c997; /* Teal */
+}
+
+/* --- Dark Mode Variables --- */
+body.dark-mode {
+    --body-bg: #343a40; /* Dark grey */
+    --header-bg: #212529; /* Even darker grey */
+    --header-text: #f8f9fa; /* Light text */
+    --system-level-text: #adb5bd; /* Lighter grey text */
+    --container-bg: #2c3034; /* Darker container */
+    --box-shadow-light: rgba(0, 0, 0, 0.3);
+    --box-shadow-dark: rgba(0, 0, 0, 0.5);
+    --admin-panel-bg-overlay: rgba(0, 0, 0, 0.9);
+    --admin-panel-content-bg: #343a40;
+    --admin-panel-text: #f8f9fa;
+    --admin-border: #495057; /* Darker border */
+    --input-border: #6c757d;
+    --input-text: #f8f9fa;
+    --label-text: #adb5bd;
+    --modal-bg: #343a40;
+    --modal-text: #f8f9fa;
+    --modal-border: #495057;
+
+    /* Dark Mode New Status Colors (can be same or adjusted) */
+    --status-onsceene-bg: #7952b3; /* Slightly lighter purple */
+    --status-enroutetodestination-bg: #26a97b; /* Slightly darker teal */
+}
+
+
+/* General Body Styling */
+body {
+    font-family: Arial, sans-serif;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-start;
+    align-items: center;
+    min-height: 100vh;
+    margin: 0;
+    padding-top: 20px;
+
+    /* Apply variables */
+    background-color: var(--body-bg);
+    color: var(--header-text); /* Default text color from header-text */
+    transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+header {
+    width: 90%;
+    max-width: 1200px;
+    padding: 20px;
+    border-radius: 8px;
+    margin-bottom: 20px;
+    text-align: center;
+
+    /* Apply variables */
+    background-color: var(--header-bg);
+    box-shadow: 0 4px 12px var(--box-shadow-light);
+    color: var(--header-text);
+    transition: background-color 0.3s ease, color 0.3s ease, box-shadow 0.3s ease;
+}
+
+header h1 {
+    margin-top: 0;
+    color: var(--header-text);
+}
+
+.system-level {
+    font-size: 1.2em;
+    font-weight: bold;
+    color: var(--system-level-text);
+    margin-bottom: 15px;
+}
+
+#adminPanelToggle, #darkModeToggle,
+.admin-form-section button, .admin-panel .timer-settings button,
+.data-management-section button, .data-management-section .custom-file-upload {
+    padding: 10px 20px;
+    font-size: 1em;
+    color: white;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: background-color 0.3s ease, opacity 0.3s ease;
+    margin: 0 5px; /* Space between buttons */
+    display: inline-block; /* For the label for file input */
+    text-align: center;
+    text-decoration: none;
+}
+
+#adminPanelToggle, #darkModeToggle {
+    background-color: var(--button-secondary);
+}
+
+#adminPanelToggle:hover, #darkModeToggle:hover {
+    background-color: var(--button-secondary-hover);
+}
+
+
+.truck-status-container {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 15px;
+    padding: 20px;
+    border-radius: 8px;
+    width: 90%;
+    max-width: 1200px;
+    min-height: 150px;
+
+    /* Apply variables */
+    background-color: var(--container-bg);
+    box-shadow: 0 4px 12px var(--box-shadow-light);
+    transition: background-color 0.3s ease, box-shadow 0.3s ease;
+}
+
+.status-box {
+    /* Smaller dimensions than before */
+    width: 180px; /* Reduced from 250px */
+    height: 90px; /* Reduced from 120px */
+    padding: 10px; /* Reduced from 15px */
+    font-size: 0.9em; /* Slightly smaller font for the smaller box */
+
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-start;
+    align-items: flex-start;
+    border-radius: 6px;
+    color: white;
+    text-align: left;
+    box-sizing: border-box;
+    overflow: hidden;
+    position: relative;
+
+    /* Removed transition for size properties, kept for color and transform */
+    transition: background-color 0.3s ease, transform 0.3s ease;
+    cursor: context-menu; /* Indicate right-click for menu */
+}
+
+/* Specific colors for each status */
+.status-box.available {
+    background-color: #28a745; /* Green */
+}
+
+.status-box.dispatched { /* En Route */
+    background-color: #6c757d; /* Grey */
+}
+
+.status-box.onScene { /* New status */
+    background-color: var(--status-onsceene-bg); /* Purple */
+}
+
+.status-box.enRouteToDestination { /* New status */
+    background-color: var(--status-enroutetodestination-bg); /* Teal */
+}
+
+.status-box.atDestination { /* Formerly 'destination' */
+    background-color: #fd7e14; /* Orange */
+}
+
+.status-box.logistics {
+    background-color: #007bff; /* Blue */
+}
+
+.status-box.unavailable {
+    background-color: #343a40; /* Red */
+}
+
+.status-box p {
+    margin: 0;
+    max-width: 100%;
+    line-height: 1.2;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: normal; /* Allow text to wrap always */
+}
+
+/* Fix for jumping boxes: Reserve space for timer */
+.status-box .timer {
+    font-size: 0.9em;
+    font-weight: bold;
+    margin-top: 5px;
+    min-height: 1.2em;
+    display: block;
+    white-space: normal; /* Allow timer text to wrap always */
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* --- Flashing Animation for Low Timer (RED) --- */
+@keyframes flash-red {
+    0%, 100% {
+        box-shadow: 0 0 0 0px rgba(255, 0, 0, 0.7); /* Red shadow */
+        transform: scale(1);
+    }
+    50% {
+        box-shadow: 0 0 20px 10px rgba(255, 0, 0, 0.7); /* More prominent red glow */
+        transform: scale(1.02);
+    }
+}
+
+.status-box.flash-alert {
+    animation: flash-red 1s infinite alternate; /* Apply the red flash animation */
+}
+
+
+/* Admin Panel Styling */
+.admin-panel {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 100;
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.3s ease, visibility 0.3s ease;
+
+    /* Apply variables */
+    background-color: var(--admin-panel-bg-overlay);
+}
+
+.admin-panel.active {
+    opacity: 1;
+    visibility: visible;
+}
+
+.admin-panel-content {
+    padding: 30px;
+    border-radius: 8px;
+    width: 80%;
+    max-width: 700px;
+    max-height: 90vh;
+    overflow-y: auto;
+    position: relative;
+    display: flex;
+    flex-direction: column;
+
+    /* Apply variables */
+    background-color: var(--admin-panel-content-bg);
+    box-shadow: 0 4px 20px var(--box-shadow-dark);
+    color: var(--admin-panel-text);
+    transition: background-color 0.3s ease, color 0.3s ease, box-shadow 0.3s ease;
+}
+
+.admin-panel h2, .admin-panel h3 {
+    margin-top: 0;
+    text-align: center;
+    color: var(--admin-panel-text);
+}
+
+#closeAdminPanel {
+    position: absolute;
+    top: 15px;
+    right: 15px;
+    padding: 8px 15px;
+    background-color: var(--button-danger);
+    color: white;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+}
+
+/* Add/Edit Truck Form */
+.admin-form-section, .data-management-section {
+    padding-bottom: 20px;
+    margin-bottom: 20px;
+    border-bottom: 1px solid var(--admin-border); /* Use variable */
+}
+
+.admin-form-section:last-of-type, .data-management-section:last-of-type {
+    border-bottom: none; /* No border for the last section */
+    margin-bottom: 0;
+    padding-bottom: 0;
+}
+
+.admin-form-section h3, .data-management-section h3 {
+    margin-top: 0;
+    margin-bottom: 15px;
+    color: var(--admin-panel-text); /* Use variable */
+}
+
+.admin-form-section div {
+    margin-bottom: 10px;
+}
+
+.admin-form-section label {
+    display: block;
+    margin-bottom: 5px;
+    font-weight: bold;
+    color: var(--label-text); /* Use variable */
+}
+
+.admin-form-section input[type="text"],
+.admin-form-section input[type="number"],
+.admin-form-section select {
+    width: calc(100% - 20px);
+    padding: 10px;
+    border: 1px solid var(--input-border); /* Use variable */
+    border-radius: 4px;
+    box-sizing: border-box;
+    background-color: var(--container-bg); /* Use container bg for input field */
+    color: var(--input-text); /* Use variable */
+}
+/* Ensure dark mode input background and text are distinct */
+body.dark-mode .admin-form-section input[type="text"],
+body.dark-mode .admin-form-section input[type="number"],
+body.dark-mode .admin-form-section select {
+    background-color: #495057; /* Slightly lighter dark grey for contrast */
+    color: #f8f9fa;
+}
+
+
+.admin-form-section button#saveTruckBtn {
+    background-color: var(--button-success);
+}
+.admin-form-section button#saveTruckBtn:hover {
+    background-color: var(--button-success-hover);
+}
+.admin-form-section button#cancelEditBtn {
+    background-color: var(--button-warning);
+    margin-left: 10px;
+}
+.admin-form-section button#cancelEditBtn:hover {
+    background-color: var(--button-warning-hover);
+}
+
+
+#adminTruckList {
+    flex-grow: 1;
+    border-top: 1px solid var(--admin-border); /* Use variable */
+    padding-top: 20px;
+}
+
+.admin-truck-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 0;
+    border-bottom: 1px solid var(--admin-border); /* Use variable */
+    flex-wrap: wrap;
+}
+
+.admin-truck-item:last-child {
+    border-bottom: none;
+}
+
+.admin-truck-item span {
+    font-weight: bold;
+    color: var(--admin-panel-text); /* Use variable */
+    flex-grow: 1;
+    min-width: 150px;
+    font-size: 1.1em;
+}
+/* Style for sub-info in admin list item */
+.admin-truck-item span span {
+    font-size:0.9em;
+    font-weight:normal;
+    color: var(--label-text); /* Use variable */
+}
+
+.admin-truck-item .controls {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 5px;
+    margin-top: 5px;
+    margin-left: auto;
+}
+
+
+.admin-truck-item .controls button,
+.admin-panel .timer-settings button {
+    padding: 8px 12px;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 0.9em;
+}
+
+/* Specific button colors (not changed by dark mode for consistency) */
+.admin-truck-item .controls button.set-dispatched { background-color: var(--button-secondary); }
+.admin-truck-item .controls button.set-dispatched:hover { background-color: var(--button-secondary-hover); }
+
+.admin-truck-item .controls button.set-available { background-color: var(--button-success); }
+.admin-truck-item .controls button.set-available:hover { background-color: var(--button-success-hover); }
+
+.admin-truck-item .controls button.set-destination { background-color: var(--button-warning); }
+.admin-truck-item .controls button.set-destination:hover { background-color: var(--button-warning-hover); }
+
+.admin-truck-item .controls button.set-logistics { background-color: var(--button-primary); }
+.admin-truck-item .controls button.set-logistics:hover { background-color: var(--button-primary-hover); }
+
+.admin-truck-item .controls button.set-posted { background-color: var(--button-danger); }
+.admin-truck-item .controls button.set-posted:hover { background-color: var(--button-danger-hover); }
+
+.admin-truck-item .controls button.take-down { background-color: var(--button-danger); }
+.admin-truck-item .controls button.take-down:hover { background-color: var(--button-danger-hover); }
+
+.admin-truck-item .controls button.edit-truck { background-color: var(--button-info); }
+.admin-truck-item .controls button.edit-truck:hover { background-color: var(--button-info-hover); }
+
+
+.admin-truck-item .controls button:hover,
+.admin-panel .timer-settings button:hover,
+.admin-form-section button:hover {
+    opacity: 0.9;
+}
+
+.admin-panel .timer-settings {
+    margin-top: 30px;
+    padding-top: 20px;
+    border-top: 1px solid var(--admin-border); /* Use variable */
+}
+
+.admin-panel .timer-settings label {
+    display: block;
+    margin-bottom: 5px;
+    font-weight: bold;
+    color: var(--label-text); /* Use variable */
+}
+
+.admin-panel .timer-settings input[type="number"] {
+    width: 80px;
+    padding: 8px;
+    border: 1px solid var(--input-border); /* Use variable */
+    border-radius: 4px;
+    margin-bottom: 15px;
+    background-color: var(--container-bg); /* Use container bg for input field */
+    color: var(--input-text); /* Use variable */
+}
+/* Ensure dark mode input background and text are distinct */
+body.dark-mode .admin-panel .timer-settings input[type="number"] {
+    background-color: #495057;
+    color: #f8f9fa;
+}
+
+
+.admin-panel .timer-settings button {
+    background-color: var(--button-primary);
+    color: white;
+    padding: 10px 20px;
+}
+.admin-panel .timer-settings button:hover {
+    background-color: var(--button-primary-hover);
+}
+
+/* Data Management Section */
+.data-management-section {
+    padding-top: 20px;
+    border-top: 1px solid var(--admin-border);
+    margin-top: 20px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    align-items: center;
+    justify-content: center;
+}
+
+.data-management-section h3 {
+    width: 100%;
+    margin-bottom: 15px;
+}
+
+.data-management-section button#exportDataBtn {
+    background-color: var(--button-primary);
+}
+.data-management-section button#exportDataBtn:hover {
+    background-color: var(--button-primary-hover);
+}
+
+.data-management-section .custom-file-upload {
+    background-color: var(--button-info);
+    cursor: pointer;
+}
+.data-management-section .custom-file-upload:hover {
+    background-color: var(--button-info-hover);
+}
+
+
+/* Custom Modal Styling */
+.modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.7);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.3s ease, visibility 0.3s ease;
+}
+
+.modal-overlay.active {
+    opacity: 1;
+    visibility: visible;
+}
+
+.modal-content {
+    background-color: var(--modal-bg);
+    color: var(--modal-text);
+    padding: 30px;
+    border-radius: 8px;
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+    text-align: center;
+    max-width: 400px;
+    width: 90%;
+    transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+.modal-content h3 {
+    margin-top: 0;
+    color: var(--modal-text);
+}
+
+.modal-content p {
+    margin-bottom: 20px;
+    line-height: 1.5;
+}
+
+.modal-buttons button {
+    padding: 10px 20px;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    margin: 0 10px;
+    font-size: 1em;
+    transition: opacity 0.3s ease;
+}
+
+.modal-buttons .confirm-btn {
+    background-color: var(--button-primary);
+    color: white;
+}
+.modal-buttons .confirm-btn:hover {
+    background-color: var(--button-primary-hover);
+}
+
+.modal-buttons .cancel-btn {
+    background-color: var(--button-secondary);
+    color: white;
+}
+.modal-buttons .cancel-btn:hover {
+    background-color: var(--button-secondary-hover);
+}
+
+/* Hide cancel button for alert type modal */
+.modal-overlay.alert-type .modal-buttons .cancel-btn {
+    display: none;
+}
+
+/* --- New: Custom Context Menu Styling --- */
+.context-menu {
+    position: fixed;
+    background-color: var(--modal-bg);
+    border-radius: 5px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+    z-index: 1000;
+    list-style: none;
+    padding: 5px 0;
+    margin: 0;
+    min-width: 180px;
+    display: none; /* Hidden by default */
+    border: 1px solid var(--modal-border);
+    color: var(--modal-text);
+}
+
+.context-menu.active {
+    display: block; /* Shown when active */
+}
+
+.context-menu-item {
+    padding: 8px 15px;
+    cursor: pointer;
+    font-size: 0.95em;
+    color: var(--modal-text);
+    transition: background-color 0.2s ease, color 0.2s ease;
+}
+
+.context-menu-item:hover {
+    background-color: var(--button-primary);
+    color: white;
+}
+
+.context-menu-item.danger-option:hover { /* Specific hover for "Posted" */
+    background-color: var(--button-danger);
+    color: white;
+}

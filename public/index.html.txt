@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Truck Dispatch Timers</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <header>
+        <h1>System Status Overview</h1>
+        <div class="system-level">
+            System Level: <span id="availableTruckCount">0</span> Available Trucks
+        </div>
+        <button id="adminPanelToggle">Open Admin Panel</button>
+        <button id="darkModeToggle">Toggle Dark Mode</button>
+    </header>
+
+    <div class="truck-status-container" id="trucksContainer">
+    </div>
+
+    <!-- Admin Panel -->
+    <div id="adminPanel" class="admin-panel">
+        <div class="admin-panel-content">
+            <h2>Admin Panel</h2>
+            <button id="closeAdminPanel">Close</button>
+
+            <!-- Add/Edit Truck Form -->
+            <div class="admin-form-section">
+                <h3 id="truckFormTitle">Add New Truck</h3>
+                <div>
+                    <label for="truckIdInput">Truck ID:</label>
+                    <input type="text" id="truckIdInput" placeholder="e.g., T101" required>
+                </div>
+                <div>
+                    <label for="truckNameInput">Truck Name:</label>
+                    <input type="text" id="truckNameInput" placeholder="e.g., Green Giant" required>
+                </div>
+                <div>
+                    <label for="truckLocationInput">Location:</label>
+                    <input type="text" id="truckLocationInput" placeholder="e.g., NYC" required>
+                </div>
+                <div>
+                    <label for="truckStatusSelect">Initial Status:</label>
+                    <select id="truckStatusSelect">
+                        <option value="available">Available</option>
+                        <option value="dispatched">En Route</option>
+                        <option value="onScene">On Scene</option>
+                        <option value="enRouteToDestination">En Route to Destination</option>
+                        <option value="atDestination">At Destination</option>
+                        <option value="logistics">Logistics</option>
+                        <option value="Unavailable">Unavailable</option>
+                    </select>
+                </div>
+                <button id="saveTruckBtn">Add Truck</button>
+                <button id="cancelEditBtn" style="display:none;">Cancel Edit</button>
+            </div>
+
+            <!-- Manage Existing Trucks List -->
+            <div id="adminTruckList">
+                <h3>Manage Existing Trucks</h3>
+            </div>
+
+            <!-- Timer Defaults Settings -->
+            <div class="timer-settings">
+                <h3>Timer Defaults</h3>
+                <label for="destinationTime">At Destination Time (minutes):</label>
+                <input type="number" id="destinationTime" value="30" min="1">
+                <label for="logisticsTime">Logistics Time (minutes):</label>
+                <input type="number" id="logisticsTime" value="60" min="1">
+                <button id="saveTimerDefaults">Save Timer Defaults</button>
+            </div>
+
+            <!-- New: Data Management Section -->
+            <div class="data-management-section">
+                <h3>Data Management</h3>
+                <button id="exportDataBtn">Export Trucks (JSON)</button>
+                <label for="importFileInput" class="custom-file-upload">Import Trucks (JSON)</label>
+                <input type="file" id="importFileInput" accept=".json" style="display: none;">
+            </div>
+        </div>
+    </div>
+
+    <!-- Custom Modal Dialog -->
+    <div id="customModal" class="modal-overlay">
+        <div class="modal-content">
+            <h3 id="modalTitle"></h3>
+            <p id="modalMessage"></p>
+            <div class="modal-buttons">
+                <button id="modalConfirmBtn" class="confirm-btn">OK</button>
+                <button id="modalCancelBtn" class="cancel-btn">Cancel</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Custom Context Menu -->
+    <div id="customContextMenu" class="context-menu"></div>
+
+    <script src="script.js"></script>
+</body>
+</html>
+
+
