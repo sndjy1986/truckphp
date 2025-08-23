@@ -12,10 +12,10 @@ let trucks = [];
 let lastServerUpdate = null; // To track the last update from the server
 
 // Define the order for right-click menu and status display
-const allTruckStatuses = ['available', 'dispatched', 'onScene', 'enRouteToDestination', 'atDestination', 'logistics', 'unavailable'];
+const allTruckStatuses = ['available', 'En Route', 'onScene', 'enRouteToDestination', 'atDestination', 'logistics', 'unavailable'];
 
 // Define the cycle order for left-click cycling
-const statusCycleOrder = ['available', 'dispatched', 'onScene', 'enRouteToDestination', 'atDestination'];
+const statusCycleOrder = ['available', 'En Route', 'onScene', 'enRouteToDestination', 'atDestination'];
 
 // Default timer durations (in minutes)
 let timerDefaults = {
@@ -730,3 +730,4 @@ document.addEventListener('DOMContentLoaded', async () => {
     exportDataBtn.addEventListener('click', exportTrucksToJson);
     importFileInput.addEventListener('change', importTrucksFromJson);
 });
+
