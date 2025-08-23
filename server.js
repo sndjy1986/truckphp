@@ -27,6 +27,7 @@ const DEFAULT_DATA = {
         { id: 'Med-8', name: 'Med-8', location: 'Townville', status: 'available', timerEndTime: null },
         { id: 'Med-9', name: 'Med-9', location: 'Centerville', status: 'available', timerEndTime: null },
         { id: 'Med-11', name: 'Med-11', location: 'City // HQ', status: 'available', timerEndTime: null },
+        { id: 'Med-11', name: 'Med-12', location: 'City // HQ', status: 'available', timerEndTime: null },
         { id: 'Med-13', name: 'Med-13', location: 'Honea Path', status: 'available', timerEndTime: null },
         { id: 'Med-14', name: 'Med-14', location: 'Piedmont', status: 'available', timerEndTime: null },
         { id: 'Med-15', name: 'Med-15', location: 'Wren', status: 'available', timerEndTime: null },
@@ -165,5 +166,6 @@ app.listen(PORT, () => {
     console.log(`📊 Dashboard: http://localhost:${PORT}`);
     console.log(`🔗 API: http://localhost:${PORT}/api/trucks`);
 });
+
 
 module.exports = app;
