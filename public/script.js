@@ -1,4 +1,4 @@
-// script.js - Updated with server integration
+// script.js - Updated with server integration and performance improvements
 
 // --- 1. Server Configuration ---
 const SERVER_CONFIG = {
@@ -44,7 +44,7 @@ let timerDefaults = {
 // Variable to hold the ID of the truck currently being edited
 let editingTruckId = null;
 
-// --- 3. DOM Elements (same as before) ---
+// --- 3. DOM Elements ---
 const trucksContainer = document.getElementById('trucksContainer');
 const availableTruckCountSpan = document.getElementById('availableTruckCount');
 const adminPanelToggleBtn = document.getElementById('adminPanelToggle');
@@ -116,28 +116,28 @@ function showLoadingMessage(message) {
     const loadingDiv = document.createElement('div');
     loadingDiv.id = 'loadingIndicator';
     loadingDiv.innerHTML = `
-        <div style="position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); 
-                    background: var(--modal-bg); padding: 20px; border-radius: 8px; 
+        <div style="position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
+                    background: var(--modal-bg); padding: 20px; border-radius: 8px;
                     box-shadow: 0 4px 12px var(--box-shadow-dark); z-index: 1001;
                     color: var(--modal-text);">
             <div style="text-align: center;">
-                <div style="border: 3px solid #f3f3f3; border-top: 3px solid var(--button-primary); 
+                <div style="border: 3px solid #f3f3f3; border-top: 3px solid var(--button-primary);
                            border-radius: 50%; width: 30px; height: 30px; animation: spin 1s linear infinite;
                            margin: 0 auto 10px;"></div>
                 ${message}
             </div>
         </div>
-        <div style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; 
+        <div style="position: fixed; top: 0; left: 0; width: 100%; height: 100%;
                     background: rgba(0,0,0,0.5); z-index: 1000;"></div>
     `;
-    
+
     if (!document.querySelector('#spinnerCSS')) {
         const style = document.createElement('style');
         style.id = 'spinnerCSS';
         style.textContent = '@keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }';
         document.head.appendChild(style);
     }
-    
+
     document.body.appendChild(loadingDiv);
     return loadingDiv;
 }
@@ -164,9 +164,9 @@ function updateLastSyncIndicator(timestamp) {
         indicator = document.createElement('div');
         indicator.id = 'lastSyncIndicator';
         indicator.style.cssText = `
-            position: fixed; bottom: 10px; right: 10px; 
-            background: var(--button-secondary); color: white; 
-            padding: 5px 10px; border-radius: 15px; 
+            position: fixed; bottom: 10px; right: 10px;
+            background: var(--button-secondary); color: white;
+            padding: 5px 10px; border-radius: 15px;
             font-size: 0.8em; z-index: 100;
             opacity: 0.8;
         `;
@@ -181,7 +181,7 @@ function updateLastSyncIndicator(timestamp) {
 async function saveData() {
     try {
         const loadingMsg = showLoadingMessage('Saving data...');
-        
+
         const dataToSave = {
             trucks: trucks.map(truck => ({
                 id: truck.id,
@@ -208,14 +208,14 @@ async function saveData() {
             const result = await response.json();
             console.log('✅ Data saved successfully:', result);
             updateLastSyncIndicator('Just now');
-            
+
             // Save to localStorage as backup
             try {
                 localStorage.setItem('truckDispatchBackup', JSON.stringify(dataToSave));
             } catch (e) {
                 console.warn('Could not save local backup:', e);
             }
-            
+
         } else {
             throw new Error(`Server responded with status: ${response.status}`);
         }
@@ -223,7 +223,7 @@ async function saveData() {
     } catch (error) {
         hideLoadingMessage();
         console.error('❌ Error saving data to server:', error);
-        
+
         // Try to save to localStorage as fallback
         try {
             const backupData = {
@@ -277,10 +277,10 @@ async function loadData() {
                 timerDefaults = { ...timerDefaults, ...serverData.timerDefaults };
             }
 
-            const lastUpdated = serverData.lastUpdated ? 
+            const lastUpdated = serverData.lastUpdated ?
                 new Date(serverData.lastUpdated).toLocaleString() : 'Just now';
             updateLastSyncIndicator(lastUpdated);
-            
+
         } else {
             throw new Error(`Server responded with status: ${response.status}`);
         }
@@ -288,24 +288,24 @@ async function loadData() {
     } catch (error) {
         hideLoadingMessage();
         console.error('❌ Error loading data from server:', error);
-        
+
         // Try to load from localStorage backup
         try {
             const backupData = localStorage.getItem('truckDispatchBackup');
             if (backupData) {
                 const parsedBackup = JSON.parse(backupData);
-                
+
                 if (parsedBackup.trucks) {
                     trucks = parsedBackup.trucks.map(truck => ({
                         ...truck,
                         timer: null
                     }));
                 }
-                
+
                 if (parsedBackup.timerDefaults) {
                     timerDefaults = { ...timerDefaults, ...parsedBackup.timerDefaults };
                 }
-                
+
                 updateLastSyncIndicator('Local backup');
                 showModal('Server unavailable. Loaded backup data from this device.', 'alert');
             } else {
@@ -329,12 +329,11 @@ async function syncWithServer() {
             await loadData();
             renderTrucks();
             renderAdminTruckList();
-            initializeTimers();
         }
     });
 }
 
-// --- 5. All your existing functions (unchanged) ---
+// --- 5. UI Rendering and Logic ---
 
 function renderTrucks() {
     trucksContainer.innerHTML = '';
@@ -342,8 +341,27 @@ function renderTrucks() {
 
     trucks.forEach(truck => {
         const box = document.createElement('div');
-        box.classList.add('status-box', truck.status);
+        box.classList.add('status-box');
         box.dataset.truckId = truck.id;
+        trucksContainer.appendChild(box);
+        if (truck.status === 'available') {
+            availableCount++;
+        }
+    });
+
+    updateSystemLevel(availableCount);
+    updateTrucksDisplay(); // Initial update
+}
+
+
+function updateTrucksDisplay() {
+    let availableCount = 0;
+    trucks.forEach(truck => {
+        const box = trucksContainer.querySelector(`.status-box[data-truck-id="${truck.id}"]`);
+        if (!box) return;
+
+        // Update status class
+        box.className = 'status-box ' + truck.status;
 
         let displayStatus = truck.status;
         switch (truck.status) {
@@ -365,46 +383,33 @@ function renderTrucks() {
         content += `<p>${truck.name} - ${displayStatus.charAt(0).toUpperCase() + displayStatus.slice(1)}</p>`;
 
         let timerDisplay = '';
-        let displayPrefix = '';
-        let totalSeconds = 0;
-
         if ((truck.status === 'atDestination' || truck.status === 'logistics') && truck.timerEndTime) {
             const timeLeftMs = truck.timerEndTime - Date.now();
-
-            if (timeLeftMs > 0) {
-                totalSeconds = Math.floor(timeLeftMs / 1000);
-                displayPrefix = '';
-            } else {
-                displayPrefix = '+';
-                totalSeconds = Math.floor(Math.abs(timeLeftMs) / 1000);
-            }
-
+            const displayPrefix = timeLeftMs > 0 ? '' : '+';
+            const totalSeconds = Math.floor(Math.abs(timeLeftMs) / 1000);
             const minutes = Math.floor(totalSeconds / 60);
             const seconds = totalSeconds % 60;
             timerDisplay = `Time: ${displayPrefix}${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
-        }
-        content += `<p class="timer">${timerDisplay}</p>`;
 
-        box.innerHTML = content;
-
-        if ((truck.status === 'atDestination' || truck.status === 'logistics') && 
-            truck.timerEndTime && (truck.timerEndTime - Date.now()) > 0 && 
-            (truck.timerEndTime - Date.now()) < 60000) {
-            box.classList.add('flash-alert');
+            if (timeLeftMs > 0 && timeLeftMs < 60000) {
+                box.classList.add('flash-alert');
+            } else {
+                box.classList.remove('flash-alert');
+            }
         } else {
             box.classList.remove('flash-alert');
         }
 
-        trucksContainer.appendChild(box);
+        content += `<p class="timer">${timerDisplay}</p>`;
+        box.innerHTML = content;
 
         if (truck.status === 'available') {
             availableCount++;
         }
     });
-
     updateSystemLevel(availableCount);
-    saveData(); // Save to server after rendering changes
 }
+
 
 function updateSystemLevel(count) {
     availableTruckCountSpan.textContent = count;
@@ -414,32 +419,21 @@ function updateTruckStatus(truckId, newStatus) {
     const truckIndex = trucks.findIndex(truck => truck.id === truckId);
     if (truckIndex > -1) {
         const truck = trucks[truckIndex];
-
-        if (truck.timer) {
-            clearInterval(truck.timer);
-            truck.timer = null;
-        }
-
         truck.status = newStatus;
 
         if (newStatus === 'atDestination' || newStatus === 'logistics') {
             const durationInMinutes = timerDefaults[newStatus];
             truck.timerEndTime = Date.now() + (durationInMinutes * 60 * 1000);
-            truck.timer = setInterval(() => {
-                if (Date.now() >= truck.timerEndTime && truck.timer) {
-                    clearInterval(truck.timer);
-                    truck.timer = null;
-                }
-                renderTrucks();
-            }, 1000);
         } else {
             truck.timerEndTime = null;
         }
 
-        renderTrucks();
+        updateTrucksDisplay();
         renderAdminTruckList();
+        saveData();
     }
 }
+
 
 function addOrUpdateTruck() {
     const id = truckIdInput.value.trim();
@@ -455,6 +449,7 @@ function addOrUpdateTruck() {
     if (editingTruckId) {
         const truckIndex = trucks.findIndex(truck => truck.id === editingTruckId);
         if (truckIndex > -1) {
+            trucks[truckIndex].id = id;
             trucks[truckIndex].name = name;
             trucks[truckIndex].location = location;
             if (trucks[truckIndex].status !== status) {
@@ -485,6 +480,7 @@ function addOrUpdateTruck() {
 
     renderTrucks();
     renderAdminTruckList();
+    saveData();
 }
 
 function editTruck(truckId) {
@@ -493,7 +489,7 @@ function editTruck(truckId) {
         editingTruckId = truck.id;
         truckFormTitle.textContent = `Edit Truck: ${truck.name} (ID: ${truck.id})`;
         truckIdInput.value = truck.id;
-        truckIdInput.disabled = true;
+        truckIdInput.disabled = false; // Allow editing ID
         truckNameInput.value = truck.name;
         truckLocationInput.value = truck.location;
         truckStatusSelect.value = truck.status;
@@ -515,16 +511,13 @@ function resetTruckForm() {
 }
 
 function removeTruck(truckId) {
-    const truckToRemove = trucks.find(truck => truck.id === truckId);
-    if (truckToRemove && truckToRemove.timer) {
-        clearInterval(truckToRemove.timer);
-    }
     trucks = trucks.filter(truck => truck.id !== truckId);
     renderTrucks();
     renderAdminTruckList();
     if (editingTruckId === truckId) {
         resetTruckForm();
     }
+    saveData();
 }
 
 function renderAdminTruckList() {
@@ -558,7 +551,7 @@ function renderAdminTruckList() {
             <span><strong>${truck.id}</strong> - ${truck.name} <span class="truck-details">(${truck.location ? truck.location + ' - ' : ''}Status: ${displayStatus})</span></span>
             <div class="controls">
                 <button class="edit-truck" data-id="${truck.id}">Edit</button>
-                ${truck.status === 'available' ? `<button class="take-down" data-id="${truck.id}">Take Down</button>` : ''}
+                <button class="take-down" data-id="${truck.id}">Take Down</button>
             </div>
         `;
         adminTruckList.appendChild(item);
@@ -575,24 +568,6 @@ function renderAdminTruckList() {
                 }
             });
         });
-    });
-}
-
-function initializeTimers() {
-    trucks.forEach(truck => {
-        if ((truck.status === 'atDestination' || truck.status === 'logistics')) {
-            if (truck.timerEndTime) {
-                truck.timer = setInterval(() => {
-                    if (Date.now() >= truck.timerEndTime && truck.timer) {
-                        clearInterval(truck.timer);
-                        truck.timer = null;
-                    }
-                    renderTrucks();
-                }, 1000);
-            } else {
-                updateTruckStatus(truck.id, truck.status);
-            }
-        }
     });
 }
 
@@ -649,10 +624,6 @@ function importTrucksFromJson(event) {
 
             showModal('Importing new data will overwrite current truck data. Continue?', 'confirm', (confirmed) => {
                 if (confirmed) {
-                    trucks.forEach(truck => {
-                        if (truck.timer) clearInterval(truck.timer);
-                    });
-
                     trucks = importedData.trucks.map(t => ({
                         id: t.id,
                         name: t.name,
@@ -662,7 +633,7 @@ function importTrucksFromJson(event) {
                         timerEndTime: t.timerEndTime
                     }));
                     timerDefaults = importedData.timerDefaults;
-                    
+
                     if (timerDefaults.destination && !timerDefaults.atDestination) {
                         timerDefaults.atDestination = timerDefaults.destination;
                         delete timerDefaults.destination;
@@ -673,11 +644,11 @@ function importTrucksFromJson(event) {
 
                     renderTrucks();
                     renderAdminTruckList();
-                    initializeTimers();
                     destinationTimeInput.value = timerDefaults.atDestination;
                     logisticsTimeInput.value = timerDefaults.logistics;
 
                     showModal('Truck data imported successfully!', 'alert');
+                    saveData();
                 }
             });
 
@@ -729,20 +700,19 @@ function hideCustomContextMenu() {
     activeTruckIdForContextMenu = null;
 }
 
-// Add sync button
 function addSyncButton() {
     const syncButton = document.createElement('button');
     syncButton.textContent = '🔄 Sync';
     syncButton.onclick = syncWithServer;
     syncButton.style.cssText = `
-        padding: 10px 20px; font-size: 1em; color: white; border: none; 
+        padding: 10px 20px; font-size: 1em; color: white; border: none;
         border-radius: 5px; cursor: pointer; margin: 0 5px;
         background-color: var(--button-info);
         transition: background-color 0.3s ease;
     `;
     syncButton.onmouseover = () => syncButton.style.backgroundColor = 'var(--button-info-hover)';
     syncButton.onmouseout = () => syncButton.style.backgroundColor = 'var(--button-info)';
-    
+
     const header = document.querySelector('header');
     header.appendChild(syncButton);
 }
@@ -751,17 +721,14 @@ function addSyncButton() {
 
 document.addEventListener('DOMContentLoaded', async () => {
     applyDarkModePreference();
-    
-    // Load data from server first
-    await loadData();
-    
-    renderTrucks();
-    initializeTimers();
-    
-    // Add sync button
-    addSyncButton();
 
-    // Click to cycle truck status
+    await loadData();
+    renderTrucks();
+    addSyncButton();
+    
+    // Global timer for UI updates
+    setInterval(updateTrucksDisplay, 1000);
+
     trucksContainer.addEventListener('click', (event) => {
         const targetBox = event.target.closest('.status-box');
         if (targetBox) {
@@ -781,25 +748,21 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
     });
 
-    // Right-click to show custom context menu
     trucksContainer.addEventListener('contextmenu', (event) => {
         const targetBox = event.target.closest('.status-box');
         if (targetBox) {
+            event.preventDefault();
             const truckId = targetBox.dataset.truckId;
             showCustomContextMenu(event, truckId);
-        } else {
-            hideCustomContextMenu();
         }
     });
 
-    // Hide context menu if clicking anywhere else
     document.addEventListener('click', (event) => {
-        if (!customContextMenu.contains(event.target) && customContextMenu.classList.contains('active')) {
+        if (!customContextMenu.contains(event.target)) {
             hideCustomContextMenu();
         }
     });
 
-    // Admin Panel Toggling
     adminPanelToggleBtn.addEventListener('click', () => {
         adminPanel.classList.add('active');
         renderAdminTruckList();
@@ -812,11 +775,9 @@ document.addEventListener('DOMContentLoaded', async () => {
         adminPanel.classList.remove('active');
     });
 
-    // Add/Update Truck
     saveTruckBtn.addEventListener('click', addOrUpdateTruck);
     cancelEditBtn.addEventListener('click', resetTruckForm);
 
-    // Save Timer Defaults
     saveTimerDefaultsBtn.addEventListener('click', () => {
         const newAtDestTime = parseInt(destinationTimeInput.value);
         const newLogTime = parseInt(logisticsTimeInput.value);
@@ -828,22 +789,17 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         timerDefaults.atDestination = newAtDestTime;
         timerDefaults.logistics = newLogTime;
-        saveData(); // Save updated timer defaults to server
+        saveData();
         showModal('Timer defaults saved!', 'alert');
     });
 
-    // Make admin panel content clickable, not the overlay itself
     adminPanel.addEventListener('click', (event) => {
         if (event.target === adminPanel) {
             adminPanel.classList.remove('active');
         }
     });
 
-    // Dark Mode Toggle Event Listener
     darkModeToggleBtn.addEventListener('click', toggleDarkMode);
-
-    // Data Management Event Listeners
     exportDataBtn.addEventListener('click', exportTrucksToJson);
     importFileInput.addEventListener('change', importTrucksFromJson);
-
 });
