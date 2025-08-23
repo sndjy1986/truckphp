@@ -1,4 +1,4 @@
-// script.js - Updated with server integration and performance improvements
+// script.js - Updated with server integration and real-time polling
 
 // --- 1. Server Configuration ---
 const SERVER_CONFIG = {
@@ -8,31 +8,13 @@ const SERVER_CONFIG = {
 };
 
 // --- 2. Centralized Truck Data ---
-// Initial default trucks (used if server has no data)
-let trucks = [
-    { id: 'Med-0', name: 'Med-0', location: 'City // HQ', status: 'available', timer: null, timerEndTime: null },
-    { id: 'Med-1', name: 'Med-1', location: 'City // HQ', status: 'available', timer: null, timerEndTime: null },
-    { id: 'Med-2', name: 'Med-2', location: 'Rock Springs', status: 'available', timer: null, timerEndTime: null },
-    { id: 'Med-3', name: 'Med-3', location: 'Homeland Park', status: 'available', timer: null, timerEndTime: null },
-    { id: 'Med-4', name: 'Med-4', location: 'Williamston', status: 'available', timer: null, timerEndTime: null },
-    { id: 'Med-5', name: 'Med-5', location: 'Rock Springs', status: 'available', timer: null, timerEndTime: null },
-    { id: 'Med-6', name: 'Med-6', location: 'Iva', status: 'available', timer: null, timerEndTime: null },
-    { id: 'Med-7', name: 'Med-7', location: 'Pendleton', status: 'available', timer: null, timerEndTime: null },
-    { id: 'Med-8', name: 'Med-8', location: 'Townville', status: 'available', timer: null, timerEndTime: null },
-    { id: 'Med-9', name: 'Med-9', location: 'Centerville', status: 'available', timer: null, timerEndTime: null},
-    { id: 'Med-11', name: 'Med-11', location: 'City // HQ', status: 'available', timer: null, timerEndTime: null},
-    { id: 'Med-13', name: 'Med-13', location: 'Honea Path', status: 'available', timer: null, timerEndTime: null },
-    { id: 'Med-14', name: 'Med-14', location: 'Piedmont', status: 'available', timer: null, timerEndTime: null },
-    { id: 'Med-15', name: 'Med-15', location: 'Wren', status: 'available', timer: null, timerEndTime: null },
-    { id: 'Med-16', name: 'Med-16', location: 'Williamston', status: 'available', timer: null, timerEndTime: null },
-    { id: 'Med-17', name: 'Med-17', location: 'City // HQ', status: 'available', timer: null, timerEndTime: null },
-    { id: 'Med-18', name: 'Med-18', location: 'City // HQ', status: 'available', timer: null, timerEndTime: null },
-];
+let trucks = [];
+let lastServerUpdate = null; // To track the last update from the server
 
 // Define the order for right-click menu and status display
 const allTruckStatuses = ['available', 'dispatched', 'onScene', 'enRouteToDestination', 'atDestination', 'logistics', 'unavailable'];
 
-// Define the cycle order for left-click cycling (excluding 'posted')
+// Define the cycle order for left-click cycling
 const statusCycleOrder = ['available', 'dispatched', 'onScene', 'enRouteToDestination', 'atDestination'];
 
 // Default timer durations (in minutes)
@@ -55,8 +37,6 @@ const destinationTimeInput = document.getElementById('destinationTime');
 const logisticsTimeInput = document.getElementById('logisticsTime');
 const saveTimerDefaultsBtn = document.getElementById('saveTimerDefaults');
 const darkModeToggleBtn = document.getElementById('darkModeToggle');
-
-// Add/Edit Truck Form Elements
 const truckFormTitle = document.getElementById('truckFormTitle');
 const truckIdInput = document.getElementById('truckIdInput');
 const truckNameInput = document.getElementById('truckNameInput');
@@ -64,23 +44,43 @@ const truckLocationInput = document.getElementById('truckLocationInput');
 const truckStatusSelect = document.getElementById('truckStatusSelect');
 const saveTruckBtn = document.getElementById('saveTruckBtn');
 const cancelEditBtn = document.getElementById('cancelEditBtn');
-
-// Data Management Elements
 const exportDataBtn = document.getElementById('exportDataBtn');
 const importFileInput = document.getElementById('importFileInput');
-
-// Custom Modal Elements
 const customModal = document.getElementById('customModal');
 const modalTitle = document.getElementById('modalTitle');
 const modalMessage = document.getElementById('modalMessage');
 const modalConfirmBtn = document.getElementById('modalConfirmBtn');
 const modalCancelBtn = document.getElementById('modalCancelBtn');
-
-// Custom Context Menu Elements
 const customContextMenu = document.getElementById('customContextMenu');
 let activeTruckIdForContextMenu = null;
 
 // --- 4. Server Communication Functions ---
+
+async function pollServerForUpdates() {
+    try {
+        const response = await fetch(SERVER_CONFIG.baseUrl + SERVER_CONFIG.loadEndpoint);
+        if (!response.ok) {
+            throw new Error(`Server responded with status: ${response.status}`);
+        }
+        const serverData = await response.json();
+
+        // If the server data has been updated, refresh the UI
+        if (serverData.lastUpdated && serverData.lastUpdated !== lastServerUpdate) {
+            console.log('🔄 New data from server, updating UI...');
+            lastServerUpdate = serverData.lastUpdated;
+            trucks = serverData.trucks.map(truck => ({
+                ...truck,
+                timer: null // Reset timer interval property
+            }));
+            timerDefaults = { ...timerDefaults, ...serverData.timerDefaults };
+            updateTrucksDisplay();
+            renderAdminTruckList(); // Also update the admin list if it's open
+        }
+    } catch (error) {
+        console.error('Polling error:', error);
+        updateLastSyncIndicator('Polling paused');
+    }
+}
 
 /**
  * Shows a custom modal dialog.
@@ -207,15 +207,16 @@ async function saveData() {
         if (response.ok) {
             const result = await response.json();
             console.log('✅ Data saved successfully:', result);
+            lastServerUpdate = result.lastUpdated; // Update our local tracker
             updateLastSyncIndicator('Just now');
-
+            
             // Save to localStorage as backup
             try {
                 localStorage.setItem('truckDispatchBackup', JSON.stringify(dataToSave));
             } catch (e) {
                 console.warn('Could not save local backup:', e);
             }
-
+            
         } else {
             throw new Error(`Server responded with status: ${response.status}`);
         }
@@ -223,8 +224,7 @@ async function saveData() {
     } catch (error) {
         hideLoadingMessage();
         console.error('❌ Error saving data to server:', error);
-
-        // Try to save to localStorage as fallback
+        
         try {
             const backupData = {
                 trucks: trucks.map(truck => ({
@@ -277,10 +277,11 @@ async function loadData() {
                 timerDefaults = { ...timerDefaults, ...serverData.timerDefaults };
             }
 
-            const lastUpdated = serverData.lastUpdated ?
+            lastServerUpdate = serverData.lastUpdated;
+            const lastUpdated = serverData.lastUpdated ? 
                 new Date(serverData.lastUpdated).toLocaleString() : 'Just now';
             updateLastSyncIndicator(lastUpdated);
-
+            
         } else {
             throw new Error(`Server responded with status: ${response.status}`);
         }
@@ -288,24 +289,23 @@ async function loadData() {
     } catch (error) {
         hideLoadingMessage();
         console.error('❌ Error loading data from server:', error);
-
-        // Try to load from localStorage backup
+        
         try {
             const backupData = localStorage.getItem('truckDispatchBackup');
             if (backupData) {
                 const parsedBackup = JSON.parse(backupData);
-
+                
                 if (parsedBackup.trucks) {
                     trucks = parsedBackup.trucks.map(truck => ({
                         ...truck,
                         timer: null
                     }));
                 }
-
+                
                 if (parsedBackup.timerDefaults) {
                     timerDefaults = { ...timerDefaults, ...parsedBackup.timerDefaults };
                 }
-
+                
                 updateLastSyncIndicator('Local backup');
                 showModal('Server unavailable. Loaded backup data from this device.', 'alert');
             } else {
@@ -337,50 +337,31 @@ async function syncWithServer() {
 
 function renderTrucks() {
     trucksContainer.innerHTML = '';
-    let availableCount = 0;
-
     trucks.forEach(truck => {
         const box = document.createElement('div');
         box.classList.add('status-box');
         box.dataset.truckId = truck.id;
         trucksContainer.appendChild(box);
-        if (truck.status === 'available') {
-            availableCount++;
-        }
     });
-
-    updateSystemLevel(availableCount);
-    updateTrucksDisplay(); // Initial update
+    updateTrucksDisplay();
 }
-
 
 function updateTrucksDisplay() {
     let availableCount = 0;
     trucks.forEach(truck => {
         const box = trucksContainer.querySelector(`.status-box[data-truck-id="${truck.id}"]`);
-        if (!box) return;
-
-        // Update status class
-        box.className = 'status-box ' + truck.status;
-
-        let displayStatus = truck.status;
-        switch (truck.status) {
-            case 'dispatched':
-                displayStatus = 'En Route';
-                break;
-            case 'onScene':
-                displayStatus = 'On Scene';
-                break;
-            case 'enRouteToDestination':
-                displayStatus = 'En Route to Destination';
-                break;
-            case 'atDestination':
-                displayStatus = 'At Destination';
-                break;
+        if (!box) { // If a new truck was added by another user
+            renderTrucks();
+            return;
         }
 
+        box.className = 'status-box ' + truck.status;
+
+        let displayStatus = truck.status.charAt(0).toUpperCase() + truck.status.slice(1)
+            .replace(/([A-Z])/g, ' $1').trim();
+
         let content = `<p><strong>${truck.id}</strong></p>`;
-        content += `<p>${truck.name} - ${displayStatus.charAt(0).toUpperCase() + displayStatus.slice(1)}</p>`;
+        content += `<p>${truck.name} - ${displayStatus}</p>`;
 
         let timerDisplay = '';
         if ((truck.status === 'atDestination' || truck.status === 'logistics') && truck.timerEndTime) {
@@ -390,14 +371,14 @@ function updateTrucksDisplay() {
             const minutes = Math.floor(totalSeconds / 60);
             const seconds = totalSeconds % 60;
             timerDisplay = `Time: ${displayPrefix}${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
-
+            
             if (timeLeftMs > 0 && timeLeftMs < 60000) {
                 box.classList.add('flash-alert');
             } else {
                 box.classList.remove('flash-alert');
             }
         } else {
-            box.classList.remove('flash-alert');
+             box.classList.remove('flash-alert');
         }
 
         content += `<p class="timer">${timerDisplay}</p>`;
@@ -409,7 +390,6 @@ function updateTrucksDisplay() {
     });
     updateSystemLevel(availableCount);
 }
-
 
 function updateSystemLevel(count) {
     availableTruckCountSpan.textContent = count;
@@ -427,13 +407,12 @@ function updateTruckStatus(truckId, newStatus) {
         } else {
             truck.timerEndTime = null;
         }
-
+        
         updateTrucksDisplay();
         renderAdminTruckList();
         saveData();
     }
 }
-
 
 function addOrUpdateTruck() {
     const id = truckIdInput.value.trim();
@@ -453,14 +432,10 @@ function addOrUpdateTruck() {
             trucks[truckIndex].name = name;
             trucks[truckIndex].location = location;
             if (trucks[truckIndex].status !== status) {
-                 updateTruckStatus(editingTruckId, status);
+                 updateTruckStatus(id, status);
             }
         }
         editingTruckId = null;
-        truckFormTitle.textContent = 'Add New Truck';
-        saveTruckBtn.textContent = 'Add Truck';
-        cancelEditBtn.style.display = 'none';
-        truckIdInput.disabled = false;
     } else {
         if (trucks.some(truck => truck.id === id)) {
             showModal('Truck with this ID already exists. Please use a unique ID.', 'alert');
@@ -473,11 +448,7 @@ function addOrUpdateTruck() {
         }
     }
 
-    truckIdInput.value = '';
-    truckNameInput.value = '';
-    truckLocationInput.value = '';
-    truckStatusSelect.value = 'available';
-
+    resetTruckForm();
     renderTrucks();
     renderAdminTruckList();
     saveData();
@@ -489,7 +460,7 @@ function editTruck(truckId) {
         editingTruckId = truck.id;
         truckFormTitle.textContent = `Edit Truck: ${truck.name} (ID: ${truck.id})`;
         truckIdInput.value = truck.id;
-        truckIdInput.disabled = false; // Allow editing ID
+        truckIdInput.disabled = false;
         truckNameInput.value = truck.name;
         truckLocationInput.value = truck.location;
         truckStatusSelect.value = truck.status;
@@ -521,6 +492,9 @@ function removeTruck(truckId) {
 }
 
 function renderAdminTruckList() {
+    // Only update if admin panel is open
+    if (!adminPanel.classList.contains('active')) return;
+
     adminTruckList.innerHTML = '<h3>Manage Existing Trucks</h3>';
     if (trucks.length === 0) {
         adminTruckList.innerHTML += '<p>No trucks currently in the system.</p>';
@@ -531,21 +505,8 @@ function renderAdminTruckList() {
         const item = document.createElement('div');
         item.classList.add('admin-truck-item');
 
-        let displayStatus = truck.status;
-        switch (truck.status) {
-            case 'dispatched':
-                displayStatus = 'En Route';
-                break;
-            case 'onScene':
-                displayStatus = 'On Scene';
-                break;
-            case 'enRouteToDestination':
-                displayStatus = 'En Route to Destination';
-                break;
-            case 'atDestination':
-                displayStatus = 'At Destination';
-                break;
-        }
+        let displayStatus = truck.status.charAt(0).toUpperCase() + truck.status.slice(1)
+            .replace(/([A-Z])/g, ' $1').trim();
 
         item.innerHTML = `
             <span><strong>${truck.id}</strong> - ${truck.name} <span class="truck-details">(${truck.location ? truck.location + ' - ' : ''}Status: ${displayStatus})</span></span>
@@ -573,11 +534,7 @@ function renderAdminTruckList() {
 
 function toggleDarkMode() {
     document.body.classList.toggle('dark-mode');
-    if (document.body.classList.contains('dark-mode')) {
-        localStorage.setItem('darkMode', 'enabled');
-    } else {
-        localStorage.setItem('darkMode', 'disabled');
-    }
+    localStorage.setItem('darkMode', document.body.classList.contains('dark-mode') ? 'enabled' : 'disabled');
 }
 
 function applyDarkModePreference() {
@@ -624,34 +581,16 @@ function importTrucksFromJson(event) {
 
             showModal('Importing new data will overwrite current truck data. Continue?', 'confirm', (confirmed) => {
                 if (confirmed) {
-                    trucks = importedData.trucks.map(t => ({
-                        id: t.id,
-                        name: t.name,
-                        location: t.location,
-                        status: t.status,
-                        timer: null,
-                        timerEndTime: t.timerEndTime
-                    }));
+                    trucks = importedData.trucks.map(t => ({...t, timer: null }));
                     timerDefaults = importedData.timerDefaults;
-
-                    if (timerDefaults.destination && !timerDefaults.atDestination) {
-                        timerDefaults.atDestination = timerDefaults.destination;
-                        delete timerDefaults.destination;
-                    } else if (timerDefaults.enRouteToDestination && !timerDefaults.atDestination) {
-                        timerDefaults.atDestination = timerDefaults.enRouteToDestination;
-                        delete timerDefaults.enRouteToDestination;
-                    }
-
                     renderTrucks();
                     renderAdminTruckList();
                     destinationTimeInput.value = timerDefaults.atDestination;
                     logisticsTimeInput.value = timerDefaults.logistics;
-
                     showModal('Truck data imported successfully!', 'alert');
                     saveData();
                 }
             });
-
         } catch (error) {
             console.error("Error importing JSON:", error);
             showModal('Failed to read or parse JSON file.', 'alert');
@@ -666,7 +605,6 @@ function showCustomContextMenu(event, truckId) {
     activeTruckIdForContextMenu = truckId;
 
     customContextMenu.innerHTML = '';
-
     const statusDisplayNames = {
         available: 'Available',
         dispatched: 'En Route',
@@ -682,7 +620,6 @@ function showCustomContextMenu(event, truckId) {
         menuItem.classList.add('context-menu-item');
         menuItem.textContent = statusDisplayNames[status];
         menuItem.dataset.status = status;
-
         menuItem.addEventListener('click', () => {
             updateTruckStatus(activeTruckIdForContextMenu, status);
             hideCustomContextMenu();
@@ -712,22 +649,20 @@ function addSyncButton() {
     `;
     syncButton.onmouseover = () => syncButton.style.backgroundColor = 'var(--button-info-hover)';
     syncButton.onmouseout = () => syncButton.style.backgroundColor = 'var(--button-info)';
-
-    const header = document.querySelector('header');
-    header.appendChild(syncButton);
+    document.querySelector('header').appendChild(syncButton);
 }
 
 // --- 6. Event Listeners ---
 
 document.addEventListener('DOMContentLoaded', async () => {
     applyDarkModePreference();
-
     await loadData();
     renderTrucks();
     addSyncButton();
     
-    // Global timer for UI updates
+    // Global timer for UI updates and polling
     setInterval(updateTrucksDisplay, 1000);
+    setInterval(pollServerForUpdates, 5000); // Poll every 5 seconds
 
     trucksContainer.addEventListener('click', (event) => {
         const targetBox = event.target.closest('.status-box');
@@ -737,10 +672,8 @@ document.addEventListener('DOMContentLoaded', async () => {
             if (truckIndex > -1) {
                 const currentStatus = trucks[truckIndex].status;
                 if (statusCycleOrder.includes(currentStatus)) {
-                    const currentIndex = statusCycleOrder.indexOf(currentStatus);
-                    const nextIndex = (currentIndex + 1) % statusCycleOrder.length;
-                    const nextStatus = statusCycleOrder[nextIndex];
-                    updateTruckStatus(truckId, nextStatus);
+                    const nextIndex = (statusCycleOrder.indexOf(currentStatus) + 1) % statusCycleOrder.length;
+                    updateTruckStatus(truckId, statusCycleOrder[nextIndex]);
                 } else if (currentStatus === 'unavailable') {
                     updateTruckStatus(truckId, 'available');
                 }
@@ -752,8 +685,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         const targetBox = event.target.closest('.status-box');
         if (targetBox) {
             event.preventDefault();
-            const truckId = targetBox.dataset.truckId;
-            showCustomContextMenu(event, truckId);
+            showCustomContextMenu(event, targetBox.dataset.truckId);
         }
     });
 
@@ -771,22 +703,17 @@ document.addEventListener('DOMContentLoaded', async () => {
         logisticsTimeInput.value = timerDefaults.logistics;
     });
 
-    closeAdminPanelBtn.addEventListener('click', () => {
-        adminPanel.classList.remove('active');
-    });
-
+    closeAdminPanelBtn.addEventListener('click', () => adminPanel.classList.remove('active'));
     saveTruckBtn.addEventListener('click', addOrUpdateTruck);
     cancelEditBtn.addEventListener('click', resetTruckForm);
 
     saveTimerDefaultsBtn.addEventListener('click', () => {
         const newAtDestTime = parseInt(destinationTimeInput.value);
         const newLogTime = parseInt(logisticsTimeInput.value);
-
         if (isNaN(newAtDestTime) || isNaN(newLogTime) || newAtDestTime <= 0 || newLogTime <= 0) {
             showModal('Please enter valid positive numbers for timer defaults.', 'alert');
             return;
         }
-
         timerDefaults.atDestination = newAtDestTime;
         timerDefaults.logistics = newLogTime;
         saveData();
